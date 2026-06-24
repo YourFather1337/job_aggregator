@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Регистрация — WorkFind{% endblock %}
+
+{% block content %}
+<section class="auth-page container">
+    <div class="auth-box">
+        <h1 class="auth-box__title">Регистрация</h1>
+        <p class="auth-box__sub">Уже есть аккаунт? <a href="/login" class="auth-box__link">Войти</a></p>
+
+        {% if error %}
+        <div class="auth-box__error">{{ error }}</div>
+        {% endif %}
+
+        <form class="auth-form" action="/register" method="post">
+            <div class="auth-form__group">
+                <label class="auth-form__label" for="username">Имя пользователя</label>
+                <input class="auth-form__input" type="text" id="username" name="username" autocomplete="username" required>
+            </div>
+            <div class="auth-form__group">
+                <label class="auth-form__label" for="email">Email</label>
+                <input class="auth-form__input" type="email" id="email" name="email" autocomplete="email" required>
+            </div>
+            <div class="auth-form__group">
+                <label class="auth-form__label" for="password">Пароль</label>
+                <input class="auth-form__input" type="password" id="password" name="password" autocomplete="new-password" required minlength="6">
+            </div>
+            <div class="auth-form__group">
+                <label class="auth-form__label" for="password2">Повторите пароль</label>
+                <input class="auth-form__input" type="password" id="password2" name="password2" autocomplete="new-password" required minlength="6">
+            </div>
+            <button class="auth-form__submit" type="submit">Создать аккаунт</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

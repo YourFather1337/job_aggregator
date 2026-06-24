@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}WorkFind — Найти работу{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container hero__inner">
+        <p class="hero__label">Агрегатор вакансий</p>
+        <h1 class="hero__title">Вакансии со всего рынка<br>в одном поиске</h1>
+        <p class="hero__sub">hh.ru · RemoteOK · Habr Career · Work-zilla</p>
+
+        <form class="search-form" action="/search" method="get">
+            <div class="search-form__row">
+                <input
+                    class="search-form__input"
+                    type="text"
+                    name="q"
+                    placeholder="Python разработчик, UX дизайнер…"
+                    value="{{ query or '' }}"
+                    autocomplete="off"
+                    required
+                >
+                <button class="search-form__btn" type="submit">Найти</button>
+            </div>
+            <div class="search-form__filters">
+                <input class="search-form__filter" type="text" name="city" placeholder="Город">
+                <select class="search-form__filter" name="employment">
+                    <option value="">Тип занятости</option>
+                    <option value="full">Полная</option>
+                    <option value="part">Частичная</option>
+                    <option value="remote">Удалённо</option>
+                    <option value="contract">Контракт</option>
+                </select>
+                <input class="search-form__filter" type="number" name="salary_from" placeholder="Зарплата от">
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="sources container">
+    <p class="sources__label">Источники</p>
+    <div class="sources__grid">
+        <div class="source-card">
+            <span class="source-card__name">hh.ru</span>
+            <span class="source-card__type">API</span>
+        </div>
+        <div class="source-card">
+            <span class="source-card__name">RemoteOK</span>
+            <span class="source-card__type">JSON</span>
+        </div>
+        <div class="source-card">
+            <span class="source-card__name">Habr Career</span>
+            <span class="source-card__type">HTML</span>
+        </div>
+        <div class="source-card">
+            <span class="source-card__name">Work-zilla</span>
+            <span class="source-card__type">HTML</span>
+        </div>
+    </div>
+</section>
+{% endblock %}
