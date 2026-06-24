@@ -2,62 +2,92 @@
 {% block title %}{% if resume %}Редактировать резюме{% else %}Создать резюме{% endif %} — WorkFind{% endblock %}
 
 {% block content %}
-<section class="auth-page container" style="align-items: flex-start; justify-content: center;">
-    <div class="auth-box" style="max-width: 640px;">
-        <h1 class="auth-box__title">{% if resume %}Редактировать резюме{% else %}Создать резюме{% endif %}</h1>
+<section class="search-page container">
+    <div class="page-top">
+        <a href="/resume" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Назад
+        </a>
+        <h1 class="page-title">{% if resume %}Редактировать резюме{% else %}Создать резюме{% endif %}</h1>
+    </div>
 
+    <div class="resume-form-wrap">
         {% if error %}
         <div class="auth-box__error">{{ error }}</div>
         {% endif %}
 
-        <form class="auth-form" action="/resume/edit" method="post">
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="full_name">Полное имя</label>
-                <input class="auth-form__input" type="text" id="full_name" name="full_name" value="{{ resume.full_name if resume else '' }}" required>
+        <form class="resume-form" action="/resume/edit" method="post">
+            <div class="resume-form__section">
+                <p class="resume-form__section-title">Основное</p>
+                <div class="resume-form__row">
+                    <div class="auth-form__group">
+                        <label class="auth-form__label" for="full_name">Полное имя</label>
+                        <input class="auth-form__input" type="text" id="full_name" name="full_name" value="{{ resume.full_name if resume else '' }}" required placeholder="Иван Иванов">
+                    </div>
+                    <div class="auth-form__group">
+                        <label class="auth-form__label" for="desired_position">Желаемая должность</label>
+                        <input class="auth-form__input" type="text" id="desired_position" name="desired_position" value="{{ resume.desired_position if resume else '' }}" placeholder="Python Developer">
+                    </div>
+                </div>
             </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="desired_position">Желаемая должность</label>
-                <input class="auth-form__input" type="text" id="desired_position" name="desired_position" value="{{ resume.desired_position if resume else '' }}">
+
+            <div class="resume-form__section">
+                <p class="resume-form__section-title">О себе и навыки</p>
+                <div class="auth-form__group">
+                    <label class="auth-form__label" for="about">О себе</label>
+                    <textarea class="auth-form__input auth-form__textarea" id="about" name="about" placeholder="Расскажите о себе кратко…">{{ resume.about if resume else '' }}</textarea>
+                </div>
+                <div class="auth-form__group">
+                    <label class="auth-form__label" for="skills">Навыки <span class="auth-form__hint">через запятую</span></label>
+                    <input class="auth-form__input" type="text" id="skills" name="skills" value="{{ resume.skills if resume else '' }}" placeholder="Python, FastAPI, PostgreSQL">
+                </div>
             </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="about">О себе</label>
-                <textarea class="auth-form__input auth-form__textarea" id="about" name="about">{{ resume.about if resume else '' }}</textarea>
+
+            <div class="resume-form__section">
+                <p class="resume-form__section-title">Опыт и образование</p>
+                <div class="auth-form__group">
+                    <label class="auth-form__label" for="experience">Опыт работы</label>
+                    <textarea class="auth-form__input auth-form__textarea" id="experience" name="experience" placeholder="Компания, должность, период…">{{ resume.experience if resume else '' }}</textarea>
+                </div>
+                <div class="auth-form__group">
+                    <label class="auth-form__label" for="education">Образование</label>
+                    <textarea class="auth-form__input auth-form__textarea" id="education" name="education" placeholder="Учебное заведение, специальность…">{{ resume.education if resume else '' }}</textarea>
+                </div>
             </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="skills">Навыки <span class="auth-form__hint">через запятую</span></label>
-                <input class="auth-form__input" type="text" id="skills" name="skills" value="{{ resume.skills if resume else '' }}" placeholder="Python, FastAPI, SQL">
+
+            <div class="resume-form__section">
+                <p class="resume-form__section-title">Детали</p>
+                <div class="resume-form__row">
+                    <div class="auth-form__group">
+                        <label class="auth-form__label" for="city">Город</label>
+                        <input class="auth-form__input" type="text" id="city" name="city" value="{{ resume.city if resume else '' }}" placeholder="Москва">
+                    </div>
+                    <div class="auth-form__group">
+                        <label class="auth-form__label" for="desired_salary">Желаемая зарплата, ₽</label>
+                        <input class="auth-form__input" type="number" id="desired_salary" name="desired_salary" value="{{ resume.desired_salary if resume else '' }}" placeholder="150000">
+                    </div>
+                </div>
+                <div class="resume-form__row">
+                    <div class="auth-form__group">
+                        <label class="auth-form__label" for="employment_type">Тип занятости</label>
+                        <select class="auth-form__input" id="employment_type" name="employment_type">
+                            <option value="">Не указано</option>
+                            <option value="full" {% if resume and resume.employment_type == 'full' %}selected{% endif %}>Полная</option>
+                            <option value="part" {% if resume and resume.employment_type == 'part' %}selected{% endif %}>Частичная</option>
+                            <option value="remote" {% if resume and resume.employment_type == 'remote' %}selected{% endif %}>Удалённо</option>
+                            <option value="contract" {% if resume and resume.employment_type == 'contract' %}selected{% endif %}>Контракт</option>
+                        </select>
+                    </div>
+                    <div class="auth-form__group">
+                        <label class="auth-form__label" for="contacts">Контакты</label>
+                        <input class="auth-form__input" type="text" id="contacts" name="contacts" value="{{ resume.contacts if resume else '' }}" placeholder="@telegram, email">
+                    </div>
+                </div>
             </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="experience">Опыт работы</label>
-                <textarea class="auth-form__input auth-form__textarea" id="experience" name="experience">{{ resume.experience if resume else '' }}</textarea>
-            </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="education">Образование</label>
-                <textarea class="auth-form__input auth-form__textarea" id="education" name="education">{{ resume.education if resume else '' }}</textarea>
-            </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="city">Город</label>
-                <input class="auth-form__input" type="text" id="city" name="city" value="{{ resume.city if resume else '' }}">
-            </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="desired_salary">Желаемая зарплата</label>
-                <input class="auth-form__input" type="number" id="desired_salary" name="desired_salary" value="{{ resume.desired_salary if resume else '' }}">
-            </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="employment_type">Тип занятости</label>
-                <select class="auth-form__input" id="employment_type" name="employment_type">
-                    <option value="">Не указано</option>
-                    <option value="full" {% if resume and resume.employment_type == 'full' %}selected{% endif %}>Полная</option>
-                    <option value="part" {% if resume and resume.employment_type == 'part' %}selected{% endif %}>Частичная</option>
-                    <option value="remote" {% if resume and resume.employment_type == 'remote' %}selected{% endif %}>Удалённо</option>
-                    <option value="contract" {% if resume and resume.employment_type == 'contract' %}selected{% endif %}>Контракт</option>
-                </select>
-            </div>
-            <div class="auth-form__group">
-                <label class="auth-form__label" for="contacts">Контакты</label>
-                <input class="auth-form__input" type="text" id="contacts" name="contacts" value="{{ resume.contacts if resume else '' }}" placeholder="Telegram, email, телефон">
-            </div>
-            <button class="auth-form__submit" type="submit">Сохранить</button>
+
+            <button class="auth-form__submit" type="submit">Сохранить резюме</button>
         </form>
     </div>
 </section>

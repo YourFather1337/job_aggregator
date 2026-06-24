@@ -109,7 +109,7 @@ def register(
             "error": detail,
         })
 
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/login", status_code=303)
 
 
 @router.post("/login")
@@ -139,6 +139,7 @@ def login(
     return RedirectResponse(url="/", status_code=303)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(request: Request) -> None:
+@router.post("/logout")
+def logout(request: Request):
     request.session.clear()
+    return RedirectResponse(url="/", status_code=303)
