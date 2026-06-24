@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Войти — WorkFind{% endblock %}
+
+{% block content %}
+<section class="auth-page container">
+    <div class="auth-box">
+        <h1 class="auth-box__title">Вход</h1>
+        <p class="auth-box__sub">Нет аккаунта? <a href="/register" class="auth-box__link">Зарегистрироваться</a></p>
+
+        {% if error %}
+        <div class="auth-box__error">{{ error }}</div>
+        {% endif %}
+
+        <form class="auth-form" action="/login" method="post">
+            <div class="auth-form__group">
+                <label class="auth-form__label" for="username">Имя пользователя</label>
+                <input class="auth-form__input" type="text" id="username" name="username" autocomplete="username" required>
+            </div>
+            <div class="auth-form__group">
+                <label class="auth-form__label" for="password">Пароль</label>
+                <input class="auth-form__input" type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button class="auth-form__submit" type="submit">Войти</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

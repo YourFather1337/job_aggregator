@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WorkFind{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav container">
+            <a href="/" class="nav__logo">Work<span>Find</span></a>
+            <ul class="nav__links">
+                <li><a href="/" class="nav__link {% if request.url.path == '/' %}nav__link--active{% endif %}">Поиск</a></li>
+                {% if current_user %}
+                    <li><a href="/favorites" class="nav__link {% if request.url.path == '/favorites' %}nav__link--active{% endif %}">Избранное</a></li>
+                    <li><a href="/resume" class="nav__link {% if request.url.path == '/resume' %}nav__link--active{% endif %}">Резюме</a></li>
+                    <li class="nav__user"><span class="nav__username">{{ current_user.username }}</span></li>
+                    <li>
+                        <form action="/logout" method="post" style="display:inline">
+                            <button type="submit" class="nav__link nav__link--btn">Выйти</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li><a href="/login" class="nav__link {% if request.url.path == '/login' %}nav__link--active{% endif %}">Войти</a></li>
+                    <li><a href="/register" class="nav__btn">Регистрация</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <span class="footer__text">WorkFind — агрегатор вакансий</span>
+        </div>
+    </footer>
+</body>
+</html>
