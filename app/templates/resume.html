@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Резюме — WorkFind{% endblock %}
+
+{% block content %}
+<section class="search-page container">
+    {% if resume %}
+    <div class="resume-view">
+        <div class="resume-header">
+            <div>
+                <h1 class="resume-header__name">{{ resume.full_name }}</h1>
+                {% if resume.desired_position %}
+                <p class="resume-header__position">{{ resume.desired_position }}</p>
+                {% endif %}
+            </div>
+            <a href="/resume/edit" class="resume-edit-btn">Редактировать</a>
+        </div>
+
+        <div class="resume-grid">
+            {% if resume.about %}
+            <div class="resume-section">
+                <p class="resume-section__label">О себе</p>
+                <p class="resume-section__text">{{ resume.about }}</p>
+            </div>
+            {% endif %}
+
+            {% if resume.skills %}
+            <div class="resume-section">
+                <p class="resume-section__label">Навыки</p>
+                <div class="vacancy-card__skills">
+                    {% for skill in resume.skills.split(',') %}
+                    <span class="skill-tag">{{ skill.strip() }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if resume.experience %}
+            <div class="resume-section">
+                <p class="resume-section__label">Опыт</p>
+                <p class="resume-section__text">{{ resume.experience }}</p>
+            </div>
+            {% endif %}
+
+            {% if resume.education %}
+            <div class="resume-section">
+                <p class="resume-section__label">Образование</p>
+                <p class="resume-section__text">{{ resume.education }}</p>
+            </div>
+            {% endif %}
+
+            <div class="resume-section">
+                <p class="resume-section__label">Детали</p>
+                <div class="resume-details">
+                    {% if resume.city %}<div class="resume-detail"><span class="resume-detail__key">Город</span><span class="resume-detail__val">{{ resume.city }}</span></div>{% endif %}
+                    {% if resume.desired_salary %}<div class="resume-detail"><span class="resume-detail__key">Зарплата</span><span class="resume-detail__val">{{ resume.desired_salary }}</span></div>{% endif %}
+                    {% if resume.employment_type %}<div class="resume-detail"><span class="resume-detail__key">Занятость</span><span class="resume-detail__val">{{ resume.employment_type }}</span></div>{% endif %}
+                    {% if resume.contacts %}<div class="resume-detail"><span class="resume-detail__key">Контакты</span><span class="resume-detail__val">{{ resume.contacts }}</span></div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <p class="empty-state__text">Резюме ещё не создано.</p>
+        <p class="empty-state__hint"><a href="/resume/edit" style="color: var(--accent)">Создать резюме</a></p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
