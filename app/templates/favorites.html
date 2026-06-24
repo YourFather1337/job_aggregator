@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Избранное — WorkFind{% endblock %}
+
+{% block content %}
+<section class="search-page container">
+    <div class="page-top">
+        <a href="/" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Назад
+        </a>
+        <h1 class="page-title">Избранное</h1>
+    </div>
+
+    <div class="vacancies">
+        {% for v in vacancies %}
+        <article class="vacancy-card">
+            <div class="vacancy-card__left">
+                <h2 class="vacancy-card__title">
+                    <a href="{{ v.source_url }}" target="_blank" rel="noopener">{{ v.title }}</a>
+                </h2>
+                <div class="vacancy-card__meta">
+                    <span class="vacancy-card__company">{{ v.company }}</span>
+                    {% if v.city %}<span class="vacancy-card__sep">·</span><span class="vacancy-card__city">{{ v.city }}</span>{% endif %}
+                    {% if v.employment_type %}<span class="vacancy-card__sep">·</span><span class="vacancy-card__emp">{{ v.employment_type }}</span>{% endif %}
+                </div>
+            </div>
+            <div class="vacancy-card__right">
+                <div class="vacancy-card__salary">
+                    {% if v.salary_from or v.salary_to %}
+                        {% if v.salary_from %}{{ v.salary_from | int }}{% endif %}
+                        {% if v.salary_from and v.salary_to %} – {% endif %}
+                        {% if v.salary_to %}{{ v.salary_to | int }}{% endif %}
+                        {{ v.currency or '' }}
+                    {% else %}
+                        <span class="vacancy-card__no-salary">не указана</span>
+                    {% endif %}
+                </div>
+                <span class="vacancy-card__source source-badge source-badge--{{ v.source }}">{{ v.source }}</span>
+                <form action="/favorites/{{ v.id }}/delete" method="post" class="vacancy-card__fav-form">
+                    <button type="submit" class="fav-btn fav-btn--remove">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14H6L5 6"/>
+                            <path d="M10 11v6M14 11v6"/>
+                            <path d="M9 6V4h6v2"/>
+                        </svg>
+                        Удалить
+                    </button>
+                </form>
+            </div>
+        </article>
+        {% else %}
+        <div class="empty-state">
+            <p class="empty-state__text">Избранных вакансий нет.</p>
+            <p class="empty-state__hint"><a href="/" style="color: var(--accent)">Найти вакансии</a></p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
