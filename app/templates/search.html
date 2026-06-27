@@ -19,85 +19,147 @@
         <div class="search-bar__filters">
             <form action="/search" method="get" class="filters-form">
                 <input type="hidden" name="q" value="{{ query or '' }}">
-                <input class="filter-input" type="text" name="city" placeholder="Город" value="{{ city or '' }}">
+                <input class="filter-input" type="text" name="city" placeholder="Город" value="{{ filters.city or '' }}">
                 <select class="filter-select" name="employment">
                     <option value="">Занятость</option>
-                    <option value="full" {% if employment == 'full' %}selected{% endif %}>Полная</option>
-                    <option value="part" {% if employment == 'part' %}selected{% endif %}>Частичная</option>
-                    <option value="remote" {% if employment == 'remote' %}selected{% endif %}>Удалённо</option>
-                    <option value="contract" {% if employment == 'contract' %}selected{% endif %}>Контракт</option>
+                    <option value="full"     {% if filters.employment == 'full' %}selected{% endif %}>Полная</option>
+                    <option value="part"     {% if filters.employment == 'part' %}selected{% endif %}>Частичная</option>
+                    <option value="remote"   {% if filters.employment == 'remote' %}selected{% endif %}>Удалённо</option>
+                    <option value="contract" {% if filters.employment == 'contract' %}selected{% endif %}>Контракт</option>
                 </select>
-                <input class="filter-input" type="number" name="salary_from" placeholder="Зарплата от" value="{{ salary_from or '' }}">
+                <input class="filter-input" type="number" name="salary" placeholder="Зарплата от" value="{{ filters.salary or '' }}">
                 <button class="filter-btn" type="submit">Применить</button>
             </form>
         </div>
     </div>
 
     <div class="search-page__meta">
-        <span class="results-count">
-            {% if vacancies %}{{ vacancies|length }} вакансий по запросу «{{ query }}»{% else %}Нет результатов{% endif %}
-        </span>
+        <span class="results-count" id="results-count">Загрузка…</span>
     </div>
 
-    <div class="vacancies">
-        {% for v in vacancies %}
-        <article class="vacancy-card">
-            <div class="vacancy-card__left">
-                <h2 class="vacancy-card__title">
-                    <a href="{{ v.source_url }}" target="_blank" rel="noopener">{{ v.title }}</a>
-                </h2>
-                <div class="vacancy-card__meta">
-                    <span class="vacancy-card__company">{{ v.company }}</span>
-                    {% if v.city %}<span class="vacancy-card__sep">·</span><span class="vacancy-card__city">{{ v.city }}</span>{% endif %}
-                    {% if v.employment_type %}<span class="vacancy-card__sep">·</span><span class="vacancy-card__emp">{{ v.employment_type }}</span>{% endif %}
-                </div>
-                {% if v.skills %}
-                <div class="vacancy-card__skills">
-                    {% for skill in v.skills[:5] %}
-                    <span class="skill-tag">{{ skill }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            <div class="vacancy-card__right">
-                <div class="vacancy-card__salary">
-                    {% if v.salary_from or v.salary_to %}
-                        {% if v.salary_from %}{{ v.salary_from | int }}{% endif %}
-                        {% if v.salary_from and v.salary_to %} – {% endif %}
-                        {% if v.salary_to %}{{ v.salary_to | int }}{% endif %}
-                        {{ v.currency or '' }}
-                    {% else %}
-                        <span class="vacancy-card__no-salary">не указана</span>
-                    {% endif %}
-                </div>
-                <span class="vacancy-card__source source-badge source-badge--{{ v.source }}">{{ v.source }}</span>
-                {% if current_user %}
-                <form action="/favorites/add" method="post" class="vacancy-card__fav-form">
-                    <input type="hidden" name="title" value="{{ v.title }}">
-                    <input type="hidden" name="company" value="{{ v.company }}">
-                    <input type="hidden" name="salary_from" value="{{ v.salary_from or '' }}">
-                    <input type="hidden" name="salary_to" value="{{ v.salary_to or '' }}">
-                    <input type="hidden" name="currency" value="{{ v.currency or '' }}">
-                    <input type="hidden" name="city" value="{{ v.city or '' }}">
-                    <input type="hidden" name="employment_type" value="{{ v.employment_type or '' }}">
-                    <input type="hidden" name="source" value="{{ v.source }}">
-                    <input type="hidden" name="source_url" value="{{ v.source_url }}">
-                    <button type="submit" class="fav-btn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                        В избранное
-                    </button>
-                </form>
-                {% endif %}
-            </div>
-        </article>
-        {% else %}
-        <div class="empty-state">
-            <p class="empty-state__text">По запросу «{{ query }}» ничего не найдено.</p>
-            <p class="empty-state__hint">Попробуйте изменить запрос или убрать фильтры.</p>
-        </div>
-        {% endfor %}
+    <div id="spinner" class="spinner-wrap">
+        <div class="spinner"></div>
+        <p class="spinner__text">Ищем вакансии на всех площадках…</p>
     </div>
+
+    <div class="vacancies" id="vacancies-list"></div>
 </section>
+
+{# Передаём данные из Jinja2 в JS через data-атрибуты — без конфликтов с {{ }} #}
+<div id="js-data"
+     data-query="{{ query | e }}"
+     data-logged-in="{{ 'true' if current_user else 'false' }}"
+     style="display:none"></div>
+
+{% raw %}
+<script>
+(async () => {
+    const meta       = document.getElementById("js-data");
+    const query      = meta.dataset.query;
+    const loggedIn   = meta.dataset.loggedIn === "true";
+    const spinner    = document.getElementById("spinner");
+    const list       = document.getElementById("vacancies-list");
+    const counter    = document.getElementById("results-count");
+
+    const params = new URLSearchParams(window.location.search);
+    const apiUrl = "/api/search?" + params.toString();
+
+    try {
+        const resp = await fetch(apiUrl);
+        if (!resp.ok) throw new Error("Ошибка сервера");
+        const data = await resp.json();
+
+        spinner.style.display = "none";
+
+        if (!data.vacancies || data.vacancies.length === 0) {
+            counter.textContent = "Нет результатов";
+            list.innerHTML = `
+                <div class="empty-state">
+                    <p class="empty-state__text">По запросу «${esc(query)}» ничего не найдено.</p>
+                    <p class="empty-state__hint">Попробуйте изменить запрос или убрать фильтры.</p>
+                </div>`;
+            return;
+        }
+
+        counter.textContent = `${data.vacancies.length} вакансий по запросу «${esc(query)}»`;
+        list.innerHTML = data.vacancies.map(v => buildCard(v, loggedIn)).join("");
+
+    } catch (err) {
+        spinner.style.display = "none";
+        counter.textContent = "Ошибка загрузки";
+        list.innerHTML = `
+            <div class="empty-state">
+                <p class="empty-state__text">Не удалось загрузить вакансии.</p>
+                <p class="empty-state__hint">Проверьте подключение и попробуйте снова.</p>
+            </div>`;
+    }
+})();
+
+function esc(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function buildSalary(v) {
+    if (!v.salary_from && !v.salary_to) {
+        return `<span class="vacancy-card__no-salary">не указана</span>`;
+    }
+    let s = "";
+    if (v.salary_from) s += Math.round(v.salary_from).toLocaleString("ru");
+    if (v.salary_from && v.salary_to) s += " – ";
+    if (v.salary_to)   s += Math.round(v.salary_to).toLocaleString("ru");
+    if (v.currency)    s += " " + esc(v.currency);
+    return s;
+}
+
+function buildFavForm(v) {
+    return `
+        <form action="/favorites/add" method="post" class="vacancy-card__fav-form">
+            <input type="hidden" name="title"           value="${esc(v.title)}">
+            <input type="hidden" name="company"         value="${esc(v.company)}">
+            <input type="hidden" name="salary_from"     value="${v.salary_from || ''}">
+            <input type="hidden" name="salary_to"       value="${v.salary_to   || ''}">
+            <input type="hidden" name="currency"        value="${esc(v.currency)}">
+            <input type="hidden" name="city"            value="${esc(v.city)}">
+            <input type="hidden" name="employment_type" value="${esc(v.employment_type)}">
+            <input type="hidden" name="source"          value="${esc(v.source)}">
+            <input type="hidden" name="source_url"      value="${esc(v.source_url)}">
+            <button type="submit" class="fav-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06
+                             a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78
+                             1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                В избранное
+            </button>
+        </form>`;
+}
+
+function buildCard(v, loggedIn) {
+    return `
+    <article class="vacancy-card">
+        <div class="vacancy-card__left">
+            <h2 class="vacancy-card__title">
+                <a href="${esc(v.source_url)}" target="_blank" rel="noopener">${esc(v.title)}</a>
+            </h2>
+            <div class="vacancy-card__meta">
+                <span class="vacancy-card__company">${esc(v.company)}</span>
+                ${v.city            ? `<span class="vacancy-card__sep">·</span><span class="vacancy-card__city">${esc(v.city)}</span>` : ""}
+                ${v.employment_type ? `<span class="vacancy-card__sep">·</span><span class="vacancy-card__emp">${esc(v.employment_type)}</span>` : ""}
+            </div>
+        </div>
+        <div class="vacancy-card__right">
+            <div class="vacancy-card__salary">${buildSalary(v)}</div>
+            <span class="vacancy-card__source source-badge source-badge--${esc(v.source)}">${esc(v.source)}</span>
+            ${loggedIn ? buildFavForm(v) : ""}
+        </div>
+    </article>`;
+}
+</script>
+{% endraw %}
 {% endblock %}

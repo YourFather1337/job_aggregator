@@ -1,3 +1,9 @@
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s [%(name)s]: %(message)s",
+)
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -13,7 +19,6 @@ class CurrentUserMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         user_id: int | None = request.session.get("user_id")
         user: User | None = None
-
         if user_id is not None:
             db = SessionLocal()
             try:
@@ -22,7 +27,6 @@ class CurrentUserMiddleware(BaseHTTPMiddleware):
                     request.session.clear()
             finally:
                 db.close()
-
         request.state.current_user = user
         response = await call_next(request)
         return response
@@ -32,7 +36,6 @@ app = FastAPI(title="WorkFind", description="Агрегатор вакансий
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# LIFO: SessionMiddleware регистрируем последней → выполняется первой
 app.add_middleware(CurrentUserMiddleware)
 app.add_middleware(
     SessionMiddleware,
