@@ -1,134 +1,137 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Form
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from passlib.context import CryptContext
+import bcrypt
 
 from app.database import get_db
 from app.models import User
-from app.schemas import UserCreate, UserLogin, UserResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 
 templates = Jinja2Templates(directory="app/templates")
-
 router = APIRouter(tags=["auth"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# --- НАПРЯМУЮ ИСПОЛЬЗУЕМ BCRYPT БЕЗ PASSLIB ---
 
-# ---------------------------------------------------------------------------
-# Утилиты
-# ---------------------------------------------------------------------------
 
 def _hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    # 1. Кодируем в байты и жестко обрезаем до 72 байт (требование bcrypt)
+    pwd_bytes = plain.encode("utf-8")[:72]
+    # 2. Генерируем соль и хешируем
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
+    # 3. Возвращаем как обычную строку для БД
+    return hashed_bytes.decode("utf-8")
 
 
 def _verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        # Подготавливаем введённый пароль так же, как при регистрации
+        pwd_bytes = plain.encode("utf-8")[:72]
+        hashed_bytes = hashed.encode("utf-8")
+        # Сравниваем напрямую через bcrypt
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 def _get_user_by_username(db: Session, username: str) -> User | None:
     return db.query(User).filter(User.username == username).first()
 
 
-# ---------------------------------------------------------------------------
-# Зависимость: текущий пользователь
-# ---------------------------------------------------------------------------
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    """Возвращает текущего пользователя, если он авторизован."""
+    user_id: int | None = request.session.get("user_id")
+    if user_id is None:
+        return None
+    return db.get(User, user_id)
 
-def get_current_user(
-    request: Request,
-    db: Session = Depends(get_db),
-) -> User:
-    """
-    Читает user_id из сессии и возвращает объект User.
-    Бросает 401, если пользователь не аутентифицирован или не найден.
-    """
+
+def require_user(request: Request, db: Session = Depends(get_db)) -> User:
+    """Требует авторизации. Если нет — редирект на /login (через 303 статус)."""
     user_id: int | None = request.session.get("user_id")
     if user_id is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Необходима аутентификация",
+            status_code=status.HTTP_303_SEE_OTHER, headers={"Location": "/login"}
         )
-
     user = db.get(User, user_id)
     if user is None:
-        # Сессия протухла — пользователь удалён из БД
         request.session.clear()
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Пользователь не найден. Войдите заново",
+            status_code=status.HTTP_303_SEE_OTHER, headers={"Location": "/login"}
         )
-
-    return RedirectResponse(url="/login", status_code=303)
-
-
-# ---------------------------------------------------------------------------
-# Эндпоинты
-# ---------------------------------------------------------------------------
-
-@router.get("/login")
-def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "current_user": None})
-
-@router.get("/register")
-def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "current_user": None})
-
-
-@router.post("/register")
-def register(username: str = Form(...), email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    payload = UserCreate(username=username,email=email,password=password)
-    user = User(
-        username=payload.username,
-        email=payload.email,
-        hashed_password=_hash_password(payload.password),
-    )
-    db.add(user)
-    try:
-        db.commit()
-        db.refresh(user)
-    except IntegrityError as exc:
-        db.rollback()
-        # Определяем, какое именно поле нарушает уникальность
-        err_str = str(exc.orig).lower()
-        if "username" in err_str:
-            detail = f"Имя пользователя «{payload.username}» уже занято"
-        elif "email" in err_str:
-            detail = f"Email «{payload.email}» уже зарегистрирован"
-        else:
-            detail = "Пользователь с такими данными уже существует"
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
-
-    return RedirectResponse(url="/", status_code=303)
-
-
-@router.post("/login")
-def login(username: str = Form(...), password: str = Form(...), request: Request = None, db: Session = Depends(get_db)):
-    payload = UserLogin(username=username,password=password)
-    user = _get_user_by_username(db, payload.username)
-
-    # Намеренно проверяем пароль даже если user is None (timing-safe)
-    dummy_hash = "$2b$12$notarealhashjustpadding000000000000000000000000000000"
-    password_ok = _verify_password(
-        payload.password,
-        user.hashed_password if user else dummy_hash,
-    )
-
-    if user is None or not password_ok:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-        )
-
-    request.session["user_id"] = user.id
     return user
 
 
-@router.post(
-    "/logout",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Выход из системы",
-)
-def logout(request: Request) -> None:
+@router.get("/login")
+def login_page(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user(request, db)
+    return templates.TemplateResponse(
+        "login.html", {"request": request, "current_user": current_user}
+    )
+
+
+@router.get("/register")
+def register_page(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user(request, db)
+    return templates.TemplateResponse(
+        "register.html", {"request": request, "current_user": current_user}
+    )
+
+
+@router.post("/register")
+def register(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+
+    exists = db.query(User).filter(User.username == username).first()
+    if exists:
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "error": "Пользователь уже зарегистрирован",
+                "current_user": None,
+            },
+        )
+
+    user = User(
+        username=username, email=email, hashed_password=_hash_password(password)
+    )
+    db.add(user)
+    db.commit()
+    return RedirectResponse("/login", status_code=303)
+
+
+@router.post("/login")
+def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = _get_user_by_username(db, username)
+
+    # Простая и надежная проверка без скрытых костылей от passlib
+    if user is None or not _verify_password(password, user.hashed_password):
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "error": "Неверный логин или пароль",
+                "current_user": None,
+            },
+        )
+
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(request: Request):
     request.session.clear()
+    return RedirectResponse("/", status_code=303)
