@@ -12,7 +12,6 @@
                 <p class="resume-header__position">{{ resume.desired_position }}</p>
                 {% endif %}
             </div>
-            <a href="/resume/edit" class="resume-edit-btn">Редактировать</a>
         </div>
 
         <div class="resume-grid">
@@ -36,7 +35,7 @@
 
             {% if resume.experience %}
             <div class="resume-section">
-                <p class="resume-section__label">Опыт</p>
+                <p class="resume-section__label">Опыт работы</p>
                 <p class="resume-section__text">{{ resume.experience }}</p>
             </div>
             {% endif %}
@@ -49,14 +48,47 @@
             {% endif %}
 
             <div class="resume-section">
-                <p class="resume-section__label">Детали</p>
+                <p class="resume-section__label">Дополнительная информация</p>
                 <div class="resume-details">
-                    {% if resume.city %}<div class="resume-detail"><span class="resume-detail__key">Город</span><span class="resume-detail__val">{{ resume.city }}</span></div>{% endif %}
-                    {% if resume.desired_salary %}<div class="resume-detail"><span class="resume-detail__key">Зарплата</span><span class="resume-detail__val">{{ resume.desired_salary }}</span></div>{% endif %}
-                    {% if resume.employment_type %}<div class="resume-detail"><span class="resume-detail__key">Занятость</span><span class="resume-detail__val">{{ resume.employment_type }}</span></div>{% endif %}
-                    {% if resume.contacts %}<div class="resume-detail"><span class="resume-detail__key">Контакты</span><span class="resume-detail__val">{{ resume.contacts }}</span></div>{% endif %}
+                    {% if resume.city %}
+                    <div class="resume-detail">
+                        <span class="resume-detail__key">Город</span>
+                        <span class="resume-detail__val">{{ resume.city }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if resume.desired_salary %}
+                    <div class="resume-detail">
+                        <span class="resume-detail__key">Зарплата</span>
+                        <span class="resume-detail__val">{{ resume.desired_salary }} ₽</span>
+                    </div>
+                    {% endif %}
+
+                    {% if resume.employment_type %}
+                    <div class="resume-detail">
+                        <span class="resume-detail__key">Занятость</span>
+                        <span class="resume-detail__val">
+                            {% if resume.employment_type == 'full' %}Полная{% endif %}
+                            {% if resume.employment_type == 'part' %}Частичная{% endif %}
+                            {% if resume.employment_type == 'remote' %}Удалённо{% endif %}
+                            {% if resume.employment_type == 'contract' %}Контракт{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if resume.contacts %}
+                    <div class="resume-detail">
+                        <span class="resume-detail__key">Контакты</span>
+                        <span class="resume-detail__val">{{ resume.contacts }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
+        </div>
+
+        <!-- Кнопка теперь здесь, в самом низу -->
+        <div class="resume-actions">
+            <a href="/resume/edit" class="resume-edit-btn">Редактировать резюме</a>
         </div>
     </div>
 
